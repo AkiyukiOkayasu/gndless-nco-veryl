@@ -1,0 +1,98 @@
+/// 位相の1周期完了 (End Of Cycle) 検出器
+///
+/// `Phasor`の`phase`と`phase_step`から、位相がラップアラウンドしたサイクルを1クロックだけHighにする`eoc`を生成する。
+/// 内部に`prev_phase`（32bit）を持つため、`Phasor`と同じ`clk`と`phase_rst`を与えることで`Phasor.eoc`（旧実装）と
+/// 同一のcycleで`eoc`を出力する。
+///
+/// 正のstepでは位相出力が減少したとき（オーバーフロー）、負のstepでは増加したとき（アンダーフロー）を検出する。
+/// `EocDetector`は`phase_step`の符号を参照するため、`phase`の履歴だけでは判定できない大振幅stepも正しく扱える。
+pub module EocDetector (
+    clk       : input  clock         , /// システムクロック
+    phase_rst : input  bbool         , /// 位相ゼロリセット (同期)
+    phase_step: input  Phase::step_t , /// 位相ステップ量 (`Phasor`へ与える値と同一)
+    phase     : input  Phase::phase_t, /// `Phasor`の位相出力
+    eoc       : output logic         , /// 1周期完了パルス: 位相がラップアラウンドしたサイクルで1クロックだけHigh
+) {
+    var prev_phase: Phase::phase_t; // 前サイクルの位相 (ラップアラウンド検出用)
+
+    always_ff {
+        if phase_rst {
+            prev_phase = 0;
+        } else {
+            prev_phase = phase;
+        }
+    }
+
+    // 正のstep: phaseが前回より小さくなった = オーバーフロー
+    // 負のstep: phaseが前回より大きくなった = アンダーフロー
+    assign eoc = (phase_step >= 0 && phase <: prev_phase) || (phase_step <: 0 && phase >: prev_phase);
+}
+
+/// `Phasor`＋`EocDetector`で1周期ごとに`eoc`が1回だけ出ることを検証
+#[test(test_eoc_detector)]
+module test_eoc_detector {
+    inst clk: $tb::clock_gen;
+
+    // 2^46: 位相が4クロックごとに1周する
+    const STEP: Phase::step_t = 48'd70368744177664;
+
+    var phase_step: Phase::step_t ;
+    var phase     : Phase::phase_t;
+    var phase_rst : bbool         ;
+    var eoc       : logic         ;
+
+    inst phasor: Phasor ( clk, phase_rst, phase_step, phase );
+    inst dut   : EocDetector ( clk, phase_rst, phase_step, phase, eoc );
+
+    initial {
+        phase_step = STEP;
+        phase_rst  = 1;
+        clk.next(1);
+        phase_rst = 0;
+
+        clk.next(3); // 加算1..3: 位相は 2^30, 2^31, 3*2^30 と上昇
+        $assert(!eoc, "eoc must not fire before the wrap");
+        clk.next(1); // 加算4: 位相が 0 へラップ
+        $assert(eoc, "eoc must fire on the wrap cycle");
+        $assert(phase == 32'd0, "phase must wrap to zero");
+
+        clk.next(3); // 次の周期の上昇
+        $assert(!eoc, "eoc must stay low between wraps");
+        clk.next(1); // 加算8: 2周期目のラップ
+        $assert(eoc, "eoc must fire every period");
+        $finish();
+    }
+}
+
+/// 負のstep（逆回転）でeocが出ることを検証
+/// 逆回転は位相が増加する方向へラップするため、`phase > prev_phase`で検出される
+#[test(test_eoc_detector_negative_step)]
+module test_eoc_detector_negative_step {
+    inst clk: $tb::clock_gen;
+
+    // -2^46: 位相が4クロックごとに1周する（逆回転）
+    const STEP: Phase::step_t = -48'd70368744177664;
+
+    var phase_step: Phase::step_t ;
+    var phase     : Phase::phase_t;
+    var phase_rst : bbool         ;
+    var eoc       : logic         ;
+
+    inst phasor: Phasor ( clk, phase_rst, phase_step, phase );
+    inst dut   : EocDetector ( clk, phase_rst, phase_step, phase, eoc );
+
+    initial {
+        phase_step = STEP;
+        phase_rst  = 1;
+        clk.next(1);
+        phase_rst = 0;
+
+        clk.next(1); // 加算1: 位相が 0 から 3*2^30 へラップ（逆回転）
+        $assert(eoc, "reverse rotation must wrap on the first step");
+        clk.next(3); // 加算2..4: 位相は降下
+        $assert(!eoc, "eoc must not fire during reverse descent");
+        clk.next(1); // 加算5: 再びラップ
+        $assert(eoc, "reverse rotation must wrap every four steps");
+        $finish();
+    }
+}

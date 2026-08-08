@@ -6,6 +6,9 @@
 - doc commentの句点と体言止めの表記を整理
 - doc commentのsummary表記を統一
 - 各testのdoc commentを検証目的が分かる表現へ統一
+- `Phasor`から`eoc`と`prev_phase`を除去し、1周期完了検出を`EocDetector`へ分離
+- 未使用の`NcoTick`、`ClockEnableNco`を削除
+
 ### Changed
 
 - NCO tick、分数位相アキュムレータ、`Phase`、`Phasor`を独立packageへ移動

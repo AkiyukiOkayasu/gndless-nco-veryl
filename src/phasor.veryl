@@ -28,32 +28,24 @@ pub package Phase {
 /// 位相発生器
 /// 全ての波形オシレーターの基礎となるモジュール
 /// 負の周波数（位相の逆回転）にも対応
+/// 1周期完了の検出が必要な場合は`EocDetector`を併設する
 pub module Phasor (
     clk       : input  clock         , /// システムクロック
     phase_rst : input  bbool         , /// 位相ゼロリセット (同期)
     phase_step: input  Phase::step_t , /// 1クロックあたりの位相ステップ量: step = (ターゲット周波数 * 2^48) / システムクロック周波数
     phase     : output Phase::phase_t, /// 位相出力 (0 ~ 2^32-1)
-    eoc       : output logic         , /// 1周期完了パルス (End Of Cycle): 位相がラップアラウンドしたサイクルで1クロックだけHigh
 ) {
-    var phase_acc : logic         <48>; // 内部位相アキュムレータ (48ビット)
-    var prev_phase: Phase::phase_t    ; // 前サイクルの位相 (ラップアラウンド検出用)
+    var phase_acc: logic<48>; // 内部位相アキュムレータ (48ビット)
 
     always_ff {
         if phase_rst {
-            phase_acc  = 0;
-            prev_phase = 0;
+            phase_acc = 0;
         } else {
-            phase_acc  += phase_step;
-            prev_phase =  phase;
+            phase_acc += phase_step;
         }
     }
 
     assign phase = phase_acc[msb:msb - 31]; // 上位32ビットを出力
-
-    // ラップアラウンド検出
-    // 正のstep: phaseが前回より小さくなった = オーバーフロー
-    // 負のstep: phaseが前回より大きくなった = アンダーフロー
-    assign eoc = (phase_step >= 0 && phase <: prev_phase) || (phase_step <: 0 && phase >: prev_phase);
 }
 
 /// Phasor が正しく動作することを検証
@@ -69,13 +61,7 @@ module test_phasor {
     var phase     : Phase::phase_t;
     var phase_rst : bbool         ;
 
-    inst dut: Phasor (
-        clk          ,
-        phase_rst    ,
-        phase_step   ,
-        phase        ,
-        eoc       : _,
-    );
+    inst dut: Phasor ( clk, phase_rst, phase_step, phase );
 
     initial {
         // リセット実行
