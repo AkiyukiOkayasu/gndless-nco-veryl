@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2026-08-08
 
 - 公開moduleのparam/port doc commentを追加し、説明文の途中改行を整理
 - doc commentの句点と体言止めの表記を整理
@@ -8,6 +8,8 @@
 - 各testのdoc commentを検証目的が分かる表現へ統一
 - `Phasor`から`eoc`と`prev_phase`を除去し、1周期完了検出を`EocDetector`へ分離
 - 未使用の`NcoTick`、`ClockEnableNco`を削除
+
+## [0.1.0] - 2026-07-29
 
 ### Changed
 
