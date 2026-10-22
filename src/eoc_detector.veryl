@@ -1,8 +1,7 @@
 /// 位相の1周期完了 (End Of Cycle) 検出器
 ///
 /// `Phasor`の`phase`と`phase_step`から、位相がラップアラウンドしたサイクルを1クロックだけHighにする`eoc`を生成する。
-/// 内部に`prev_phase`（32bit）を持つため、`Phasor`と同じ`clk`と`phase_rst`を与えることで`Phasor.eoc`（旧実装）と
-/// 同一のcycleで`eoc`を出力する。
+/// 内部に`prev_phase`（32bit）を持つため、`Phasor`と同じ`clk`と`phase_rst`を与えることで`Phasor.eoc`（旧実装）と同一のcycleで`eoc`を出力する。
 ///
 /// 正のstepでは位相出力が減少したとき（オーバーフロー）、負のstepでは増加したとき（アンダーフロー）を検出する。
 /// `EocDetector`は`phase_step`の符号を参照するため、`phase`の履歴だけでは判定できない大振幅stepも正しく扱える。
