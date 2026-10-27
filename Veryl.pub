@@ -7,3 +7,7 @@ revision = "23b602972ab07aa2fb7596590367d2caa125bddb"
 [[releases]]
 version = "0.2.0"
 revision = "aa8da580e7c3fb373442101971e4c0b96b0f8bfb"
+
+[[releases]]
+version = "0.2.1"
+revision = "4ce669afa23af4cc3a2291f613a17f848e64d92f"
