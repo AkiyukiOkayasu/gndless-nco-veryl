@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `step_from_hz`の小数周波数切り捨てを検証するtestを追加した
+
+### Changed
+
+- `step_from_hz`の切り捨てと48bit範囲の契約をdoc commentへ明記した
+
 ## [0.2.0] - 2026-08-08
 
 - 公開moduleのparam/port doc commentを追加し、説明文の途中改行を整理

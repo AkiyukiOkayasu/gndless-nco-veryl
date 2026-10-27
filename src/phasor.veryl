@@ -14,6 +14,9 @@ pub package Phase {
     type step_t = signed logic<48>;
 
     /// 周波数(Hz)から位相ステップ量へ変換する関数
+    ///
+    /// 変換結果はゼロ方向へ切り捨てる。
+    /// 位相ステップが48bit signedの範囲を超える周波数は指定しない。
     function step_from_hz (
         system_clk_hz: input u32, /// システムクロック周波数 (Hz)
         freq_hz      : input f64, /// 目標周波数 (Hz)
@@ -94,6 +97,7 @@ module test_step_from_hz {
     const EXPECTED_OCTAVE: Phase::step_t = 48'sd4953959590; // 880.0Hz @ 50MHz
     const STEP_POS       : Phase::step_t = Phase::step_from_hz(SYSTEM_CLK_HZ, 440.0);
     const STEP_ZERO      : Phase::step_t = Phase::step_from_hz(SYSTEM_CLK_HZ, 0.0);
+    const STEP_HALF_HZ   : Phase::step_t = Phase::step_from_hz(SYSTEM_CLK_HZ, 0.5);
 
     var step_neg   : Phase::step_t;
     var step_octave: Phase::step_t;
@@ -104,6 +108,7 @@ module test_step_from_hz {
 
         $assert(STEP_POS == EXPECTED_STEP, "440Hz step mismatch");
         $assert(STEP_ZERO == 48'sd0, "0Hz should map to zero step");
+        $assert(STEP_HALF_HZ == 48'sd2814749, "fractional Hz step must truncate toward zero");
         $assert((step_neg + STEP_POS) == 48'sd0, "negative frequency step mismatch");
         $assert(step_octave == EXPECTED_OCTAVE, "880Hz step mismatch");
         $finish();
